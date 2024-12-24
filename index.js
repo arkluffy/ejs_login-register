@@ -1,7 +1,7 @@
 const express = require('express')
 const app = express()
-port = 3000
-
+const port = 3000
+const saltRounds = 10
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
@@ -13,23 +13,67 @@ app.use(express.urlencoded({ extended:false }));
 app.get('/',(req,res) => {
     res.render(`index.ejs`)
 })
-
+var msg = ""
 app.get('/login',(req,res) => {
-    res.render(`login.ejs`)
+    res.render(`login.ejs`, {code:msg})
 })
 
-app.get('/register',(req,res) => {
-    res.render(`register.ejs`)
-})
-
-app.post('/register', async(req,res) =>{
-    console.log(req.body.username)
+app.post('/login',async(req,res) =>{
     data = {
         username: req.body.username,
         password: req.body.password
     }
+
     console.log(data)
-    res.render('register.ejs')
+
+    if(data.username == '' || data.password == ''){
+        msg = "username or password not inputted"
+        console.log('err')
+        res.render('login.ejs',{code:msg})
+    }else{
+    await db.get(data.username).then(resp => {
+        compare = bcrypt.compareSync(data.password, resp);
+        console.log(compare)
+        if(compare == true){
+            msg = "login successfull"
+            console.log("successful log")
+            res.render('login.ejs',{code:msg})
+        }else{
+            msg = "incorrect password"
+            console.log('incorrect password')
+            res.render('login.ejs',{code:msg})
+        }
+    })
+}
+})
+var message = ""
+app.get('/register',(req,res) => {
+    res.render('register.ejs', {code:message})
+})
+
+app.post('/register', async(req,res) =>{
+
+    data = {
+        username: req.body.username,
+        password: req.body.password
+    }
+
+    const encrypted = bcrypt.hashSync(data.password, saltRounds);
+
+    
+    await db.get(data.username).then(res => {
+        if(res == null){
+            db.set(data.username,encrypted)
+            console.log('password successfull')
+            message = "registered successfully"
+        }else{
+            message = "Username already exists"
+            console.log('username error')
+        }
+    })
+
+    res.render('register.ejs',{code:message})
+    
 })
 
 app.listen(port,() => {
