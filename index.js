@@ -4,18 +4,37 @@ const port = 3000
 const saltRounds = 10
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-
-const bcrypt = require('bcrypt')
+const session = require("express-session");
+const bcrypt = require('bcrypt');
 
 app.set("view engine", "ejs");
 
 app.use(express.urlencoded({ extended:false }));
+
+app.use(session({
+    secret:'config'
+    ,name:'uniqueSessionID'
+    ,saveUninitialized:false
+}))
+
 app.get('/',(req,res) => {
     res.render(`index.ejs`)
 })
 var msg = ""
 app.get('/login',(req,res) => {
     res.render(`login.ejs`, {code:msg})
+})
+
+app.get('/login',(req,res) => {
+    res.render(`login.ejs`, {code:msg})
+})
+
+app.get('/dashboard',(req,res) => {
+    if(req.session.loggedIn == true){
+        res.render('dashboard.ejs',{user:req.session.username})
+    }else{
+        res.redirect('/')
+    }
 })
 
 app.post('/login',async(req,res) =>{
@@ -37,6 +56,8 @@ app.post('/login',async(req,res) =>{
         if(compare == true){
             msg = "login successfull"
             console.log("successful log")
+            req.session.loggedIn = true
+            req.session.username = data.username
             res.render('login.ejs',{code:msg})
         }else{
             msg = "incorrect password"
