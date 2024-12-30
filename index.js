@@ -12,9 +12,10 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended:false }));
 
 app.use(session({
-    secret:'config'
-    ,name:'uniqueSessionID'
-    ,saveUninitialized:false
+    secret:'config',
+    name:'uniqueSessionID',
+    saveUninitialized:false,
+    maxAge:604800000
 }))
 
 app.get('/',(req,res) => {
@@ -43,25 +44,19 @@ app.post('/login',async(req,res) =>{
         password: req.body.password
     }
 
-    console.log(data)
-
     if(data.username == '' || data.password == ''){
         msg = "username or password not inputted"
-        console.log('err')
         res.render('login.ejs',{code:msg})
     }else{
     await db.get(data.username).then(resp => {
         compare = bcrypt.compareSync(data.password, resp);
-        console.log(compare)
         if(compare == true){
             msg = "login successfull"
-            console.log("successful log")
             req.session.loggedIn = true
             req.session.username = data.username
             res.render('login.ejs',{code:msg})
         }else{
             msg = "incorrect password"
-            console.log('incorrect password')
             res.render('login.ejs',{code:msg})
         }
     })
@@ -85,11 +80,9 @@ app.post('/register', async(req,res) =>{
     await db.get(data.username).then(res => {
         if(res == null){
             db.set(data.username,encrypted)
-            console.log('password successfull')
             message = "registered successfully"
         }else{
             message = "Username already exists"
-            console.log('username error')
         }
     })
 
